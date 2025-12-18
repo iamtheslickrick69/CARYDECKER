@@ -1993,23 +1993,30 @@ function CustomDesignTool() {
               </div>
             </div>
 
-            {/* Demo Companies */}
+            {/* Customer Favorites */}
             <div>
-              <label className="block text-sm font-medium mb-3">Example Designs</label>
+              <label className="block text-sm font-medium mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-orange-500" />
+                Customer Favorites
+              </label>
               <div className="grid grid-cols-2 gap-3">
-                {demoCompanies.map((company) => (
+                {customerFavorites.map((fav) => (
                   <button
-                    key={company.name}
-                    onClick={() => setSelectedColor(company.color)}
-                    className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:scale-105 transition-all"
+                    key={fav.id}
+                    onClick={() => {
+                      setSelectedColor(fav.color)
+                      setSelectedTemplate(fav.id)
+                    }}
+                    className="p-3 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:scale-105 transition-all text-left"
                   >
                     <div
-                      className="aspect-square rounded-lg mb-2 flex items-center justify-center text-white font-bold text-xl"
-                      style={{ backgroundColor: company.color }}
+                      className="aspect-square rounded-lg mb-2 flex items-center justify-center text-white font-bold text-sm"
+                      style={{ background: fav.color }}
                     >
-                      {company.logo}
+                      {fav.name.split(' ')[0]}
                     </div>
-                    <div className="text-xs text-gray-600">{company.name}</div>
+                    <div className="text-xs font-medium">{fav.name}</div>
+                    <div className="text-xs text-orange-500 mt-1">{fav.badge}</div>
                   </button>
                 ))}
               </div>
@@ -2017,6 +2024,7 @@ function CustomDesignTool() {
           </div>
         </div>
       </AnimatedSection>
+      </div>
     </div>
   )
 }
