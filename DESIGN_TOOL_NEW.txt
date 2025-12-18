@@ -1,0 +1,27 @@
+NEW WORLD-CLASS DESIGN TOOL UI - TO BE IMPLEMENTED
+
+Step 1: Choose Starting Point
+- Start from Scratch (blank canvas + color picker)
+- Customer Favorites (4 proven designs with badges)
+- Browse by Industry (6 industry templates with order counts)
+
+Step 2: Customize
+- Size selector (with pricing)
+- Upload logo
+- Adjust colors
+- Quantity slider
+
+Step 3: See Price & Order
+- Realistic mockup on iPhone/Mac
+- Instant pricing
+- Volume discounts shown
+- Add to cart / Get quote
+
+Key Improvements:
+✅ Removed fake demo companies
+✅ Added customer favorites with social proof
+✅ Added industry templates with order counts
+✅ Simplified from 4 tabs to 3 clear steps
+✅ Real pricing preview
+✅ Trust badges throughout
+✅ Context-aware device mockups

@@ -151,11 +151,22 @@ export default function Page() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMessage, setChatMessage] = useState("")
-  const [chatSubmitted, setChatSubmitted] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [formData, setFormData] = useState({ name: "", email: "", company: "", message: "" })
   const [scrolled, setScrolled] = useState(false)
+
+  // Cary AI State
+  const [conversation, setConversation] = useState<Array<{ role: "user" | "cary"; message: string }>>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const [leadContext, setLeadContext] = useState<{
+    quantity?: string
+    useCase?: string
+    timeline?: string
+    hasLogo?: boolean
+    email?: string
+    phone?: string
+  }>({})
 
   const carouselImages = [IMAGES.product1, IMAGES.product2, IMAGES.product3, IMAGES.product4, IMAGES.product5]
 
@@ -167,14 +178,202 @@ export default function Page() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    const chatMessages = document.getElementById("chat-messages")
+    if (chatMessages) {
+      chatMessages.scrollTop = chatMessages.scrollHeight
+    }
+  }, [conversation, isTyping])
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setFormSubmitted(true)
   }
 
-  const handleChatSubmit = () => {
+  // Cary AI Intelligence System
+  const getCaryResponse = (userMessage: string): string => {
+    const msg = userMessage.toLowerCase()
+
+    // Extract context from user message
+    const extractQuantity = msg.match(/(\d+)\s*(units?|pieces?|cleaners?)?/)
+    const extractEmail = msg.match(/[\w.-]+@[\w.-]+\.\w+/)
+    const extractPhone = msg.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)
+
+    if (extractQuantity) setLeadContext({ ...leadContext, quantity: extractQuantity[1] })
+    if (extractEmail) setLeadContext({ ...leadContext, email: extractEmail[0] })
+    if (extractPhone) setLeadContext({ ...leadContext, phone: extractPhone[0] })
+
+    // Detect use case
+    if (msg.includes("conference") || msg.includes("trade show") || msg.includes("event")) {
+      setLeadContext({ ...leadContext, useCase: "conference" })
+    }
+
+    // GREETING & INTRO
+    if (msg.match(/\b(hi|hey|hello|yo|sup|good morning|good afternoon)\b/) && conversation.length <= 1) {
+      return "Hey! I'm Cary Decker, the guy who invented these screen cleaners. 🙂 What brings you here today?"
+    }
+
+    // PRICING REQUESTS
+    if (msg.includes("price") || msg.includes("cost") || msg.includes("how much") || msg.includes("pricing")) {
+      if (!leadContext.quantity) {
+        return "Great question! Pricing depends on quantity and customization. How many units are you thinking? (We do bulk orders from 50 to 10,000+)"
+      } else {
+        return `Awesome! For ${leadContext.quantity} units, pricing ranges from $3-8 each depending on customization. Want me to send you an exact quote? What's your email?`
+      }
+    }
+
+    // QUANTITY QUESTIONS
+    if (msg.match(/(\d+)\s*(units?|pieces?)/)) {
+      const qty = parseInt(extractQuantity![1])
+      if (qty < 50) {
+        return "Our minimum order is 50 units for custom branding. But trust me, once you see these, you'll want more! They're perfect for conferences, client gifts, or employee swag. What's your use case?"
+      } else if (qty < 500) {
+        return `Perfect! ${qty} units is a great order size. These are ideal for corporate gifts, trade shows, or onboarding kits. What's the occasion? That'll help me recommend the best size and design options.`
+      } else {
+        return `Love it! ${qty} units - you're thinking big! 🚀 For orders over 500, we can do special pricing and rush turnaround if needed. When do you need them by?`
+      }
+    }
+
+    // USE CASE RESPONSES
+    if (msg.includes("conference") || msg.includes("trade show")) {
+      return "These are PERFECT for conferences! People actually keep them (unlike pens that disappear). 95% retention rate! Plus your logo is in their hand 100+ times a day. Way better ROI than a tote bag. Want to see our conference package options?"
+    }
+
+    if (msg.includes("gift") || msg.includes("employee") || msg.includes("team") || msg.includes("staff")) {
+      return "Great choice! These make excellent employee gifts because they're actually useful. Your team will stick them on their phones and laptops - constant brand reminder. Plus they're premium quality, so it shows you care. How big is your team?"
+    }
+
+    if (msg.includes("client") || msg.includes("customer")) {
+      return "Smart move! Client gifts that get used = strong relationships. These stick to their phones, so every time they're in a meeting, they see your logo. Way more impact than a mug sitting in a cabinet. How many clients are you thinking?"
+    }
+
+    // PRODUCT FEATURES
+    if (msg.includes("how") && (msg.includes("work") || msg.includes("clean"))) {
+      return "They use NASA-inspired nano-carbon material that magnetically attracts grime, oils, and smudges. Just peel, wipe, stick back - stays sticky forever! Washable 100+ times. I invented these because existing solutions sucked. 😄"
+    }
+
+    if (msg.includes("material") || msg.includes("made of") || msg.includes("nasa")) {
+      return "Great question! Proprietary nano-carbon blended material - the same stuff NASA uses. It's antimicrobial too, so it inhibits bacteria while it cleans. Plus lifetime warranty because I stand behind my product. 300,000+ sold!"
+    }
+
+    if (msg.includes("size") || msg.includes("dimensions")) {
+      return "We have 3 sizes: Small (1.5\" - phones/watches), Medium (2.5\" - tablets/laptops), Large (3.5\" - monitors/TVs). Most people go with Medium for versatility. What devices are you targeting?"
+    }
+
+    if (msg.includes("custom") || msg.includes("logo") || msg.includes("brand")) {
+      return "You can fully customize them! Upload your logo, pick brand colors, choose patterns, or use our templates. Check out our design tool on the page - you can see a live preview as you design. Want me to walk you through it?"
+    }
+
+    // TIMELINE & LOGISTICS
+    if (msg.includes("how long") || msg.includes("turnaround") || msg.includes("when") || msg.includes("timeline")) {
+      return "Standard turnaround is 3-4 weeks from design approval. Need them faster? We can do rush orders for urgent events. When do you need them by?"
+    }
+
+    if (msg.includes("ship") || msg.includes("deliver") || msg.includes("freight")) {
+      return "We ship anywhere in the US (and internationally too). For bulk orders, we use freight carriers. Smaller orders go UPS/FedEx. Free shipping on orders over 500 units! Where are you located?"
+    }
+
+    if (msg.includes("minimum") || msg.includes("small order")) {
+      return "Minimum order is 50 units for custom branding. Honestly, once companies see these, they usually order way more! The per-unit cost drops significantly at higher quantities. Starting with 100-200 is the sweet spot."
+    }
+
+    // QUALITY & WARRANTY
+    if (msg.includes("quality") || msg.includes("warranty") || msg.includes("guarantee")) {
+      return "LIFETIME WARRANTY. Seriously. If anything goes wrong, I'll replace it free. Forever. I invented these, so I stand behind them 100%. 300K+ units sold and we've had almost zero warranty claims. That's how confident I am."
+    }
+
+    if (msg.includes("washable") || msg.includes("reusable") || msg.includes("last")) {
+      return "Built for hundreds of uses! Just rinse with water and they're good as new - stickiness comes right back. Unlike those cheap microfiber cloths that lose their magic after a few wipes. These are the real deal."
+    }
+
+    // SAMPLE REQUESTS
+    if (msg.includes("sample") || msg.includes("try")) {
+      return "Smart thinking! I can send you a sample so you can feel the quality yourself. Text me at (801) 362-1991 or email Cary@innowerks.com with your address and I'll get one out to you. Fastest way to see why these are amazing!"
+    }
+
+    // CONTACT & NEXT STEPS
+    if (extractEmail) {
+      return `Awesome - I got your email (${extractEmail[0]}). I'll send you a detailed quote within the hour! In the meantime, feel free to play with the design tool on this page to visualize your branded cleaners. Anything else I can help with?`
+    }
+
+    if (msg.includes("call") || msg.includes("talk") || msg.includes("phone")) {
+      return "Let's do it! Text me at (801) 362-1991 or book a quick 15-min call: https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ2RVoasEKr5d6m6y88vCNhM6Tvjtvn8asT1XcZb8QdeHVVZV4MXnZQxxC2wuN2Pc_RlrP9WBH1P - I'll walk you through everything!"
+    }
+
+    // COMPETITOR COMPARISONS
+    if (msg.includes("cheaper") || msg.includes("expensive") || msg.includes("price too high")) {
+      return "I get it - you can find cheaper options. But here's the thing: those fall apart after a few uses. Mine come with a LIFETIME WARRANTY and actually work. 300K+ sold because the quality speaks for itself. You're not buying a screen cleaner - you're buying a brand impression tool that lasts."
+    }
+
+    // OBJECTION HANDLING
+    if (msg.includes("think about it") || msg.includes("later") || msg.includes("not sure")) {
+      return "Totally understand! Before you go, what's holding you back? Price? Timeline? Minimum order? Let me address any concerns - I want to make sure this is a win for you."
+    }
+
+    // FRIENDLY CONVERSATION
+    if (msg.includes("thanks") || msg.includes("thank you")) {
+      return "You're welcome! Anytime. Seriously - I love talking about these because I genuinely believe in them. If anything else comes up, just shoot me a text at (801) 362-1991. I'm always here to help!"
+    }
+
+    if (msg.includes("cool") || msg.includes("awesome") || msg.includes("great")) {
+      return "Right?! I'm excited to help you create something awesome. What's the next step for you - need a quote, want to see a sample, or ready to design?"
+    }
+
+    // OFF-TOPIC REDIRECT
+    if (msg.includes("weather") || msg.includes("politics") || msg.includes("sports") || msg.includes("news")) {
+      return "Ha! I'd love to chat about that over a beer, but I'm here to help with screen cleaners. 😄 What can I help you with for your project?"
+    }
+
+    // DEFAULT / CATCH-ALL
+    return "Great question! Let me connect you with the full details - text me at (801) 362-1991 or email Cary@innowerks.com and I'll respond in under an hour. Or check out the design tool on this page to visualize your custom cleaners!"
+  }
+
+  const handleChatSubmit = async () => {
     if (chatMessage.trim()) {
-      setChatSubmitted(true)
+      // Add user message to conversation
+      const userMsg = { role: "user" as const, message: chatMessage }
+      const newConversation = [...conversation, userMsg]
+      setConversation(newConversation)
+
+      // Clear input immediately
+      const currentMessage = chatMessage
+      setChatMessage("")
+
+      // Show typing indicator
+      setIsTyping(true)
+
+      try {
+        // Call Claude API via our secure backend
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: currentMessage,
+            conversation: newConversation,
+            leadContext: leadContext
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('API call failed')
+        }
+
+        const data = await response.json()
+
+        // Add Cary's response
+        setConversation(prev => [...prev, { role: "cary" as const, message: data.reply }])
+
+      } catch (error) {
+        console.error('Chat error:', error)
+        // Fallback to rule-based response if API fails
+        const fallbackResponse = getCaryResponse(currentMessage)
+        setConversation(prev => [...prev, { role: "cary" as const, message: fallbackResponse }])
+      } finally {
+        setIsTyping(false)
+      }
     }
   }
 
@@ -522,6 +721,29 @@ export default function Page() {
           </div>
         </section>
 
+        {/* SECTION 3.5: CUSTOM DESIGN TOOL */}
+        <section id="design-tool" className="py-24 px-4 sm:px-6 bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="max-w-7xl mx-auto">
+            <AnimatedSection className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-200 to-rose-300 px-4 py-2 rounded-full text-gray-800 text-sm font-medium mb-6">
+                <Sparkles className="h-4 w-4" />
+                Interactive Designer
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-light tracking-tight">
+                DESIGN YOUR OWN
+                <br />
+                CUSTOM SCREEN CLEANERS
+              </h2>
+              <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
+                Create your perfect branded screen cleaner in real-time. Choose your size, upload your logo, and customize
+                every detail.
+              </p>
+            </AnimatedSection>
+
+            <CustomDesignTool />
+          </div>
+        </section>
+
         {/* SECTION 4: BEFORE/AFTER */}
         <section className="py-24 px-4 sm:px-6 bg-white">
           <div className="max-w-7xl mx-auto">
@@ -590,7 +812,7 @@ export default function Page() {
                   ].map((benefit, index) => (
                     <AnimatedSection key={index} delay={index * 100}>
                       <div className="flex gap-4 group">
-                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-orange-200 to-rose-300 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <benefit.icon className="h-5 w-5 text-white" />
                         </div>
                         <div>
@@ -725,10 +947,7 @@ export default function Page() {
               ].map((item, index) => (
                 <AnimatedSection key={item.step} delay={index * 100}>
                   <div className="flex flex-col items-center p-8 bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <item.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <div className="h-12 w-12 rounded-full bg-black text-white flex items-center justify-center text-xl font-light">
+                    <div className="h-16 w-16 rounded-full bg-black text-white flex items-center justify-center text-2xl font-light mb-6 group-hover:scale-110 transition-transform duration-300">
                       {item.step}
                     </div>
                     <h3 className="mt-4 text-lg font-medium">{item.title}</h3>
@@ -1253,68 +1472,80 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="p-4 h-64 overflow-y-auto bg-gray-50">
-              <div className="bg-white p-3 rounded-lg shadow-sm text-sm">
-                Hey! I'm Cary, the guy who invented these screen cleaners. Ask me anything - pricing, how they work,
-                custom branding, whatever!
-              </div>
+            <div className="p-4 h-96 overflow-y-auto bg-gray-50 flex flex-col gap-3" id="chat-messages">
+              {/* Initial greeting */}
+              {conversation.length === 0 && (
+                <div className="bg-white p-3 rounded-lg shadow-sm text-sm animate-in slide-in-from-bottom-2">
+                  <p className="mb-2">Hey! I'm Cary, the guy who invented these screen cleaners. 👋</p>
+                  <p>Ask me anything - pricing, how they work, custom branding, whatever!</p>
+                </div>
+              )}
 
-              {chatSubmitted && (
-                <div className="mt-4">
-                  <div className="bg-black text-white p-3 rounded-lg text-sm ml-auto max-w-[80%]">{chatMessage}</div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm text-sm mt-2">
-                    Great question! I'm updating my AI brain right now. Text me directly at (801) 362-1991 or email
-                    Cary@innowerks.com and I'll respond within an hour.
-                    <div className="flex gap-2 mt-3">
-                      <a
-                        href="sms:+18013621991"
-                        className="flex-1 text-center text-xs bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                      >
-                        Text
-                      </a>
-                      <a
-                        href="mailto:Cary@innowerks.com"
-                        className="flex-1 text-center text-xs bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                      >
-                        Email
-                      </a>
-                    </div>
+              {/* Conversation history */}
+              {conversation.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-lg text-sm ${
+                    msg.role === "user"
+                      ? "bg-black text-white ml-auto max-w-[80%]"
+                      : "bg-white shadow-sm animate-in slide-in-from-bottom-2"
+                  }`}
+                >
+                  {msg.message}
+                </div>
+              ))}
+
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="bg-white p-3 rounded-lg shadow-sm text-sm w-16 animate-in slide-in-from-bottom-2">
+                  <div className="flex gap-1">
+                    <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
                 </div>
               )}
             </div>
 
-            {!chatSubmitted && (
-              <div className="p-4 border-t">
+            <div className="p-4 border-t bg-white">
+              {/* Quick replies - only show at start */}
+              {conversation.length === 0 && (
                 <div className="flex gap-2 mb-3 flex-wrap">
                   {["How much do they cost?", "What's the turnaround time?", "Can I get a sample?"].map((q) => (
                     <button
                       key={q}
-                      onClick={() => setChatMessage(q)}
+                      onClick={() => {
+                        setChatMessage(q)
+                        setTimeout(() => handleChatSubmit(), 100)
+                      }}
                       className="text-xs bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 hover:scale-105 transition-all"
                     >
                       {q}
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleChatSubmit()}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition-all"
-                  />
-                  <button
-                    onClick={handleChatSubmit}
-                    className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800 hover:scale-105 transition-all"
-                  >
-                    Send
-                  </button>
-                </div>
+              )}
+
+              {/* Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !isTyping && handleChatSubmit()}
+                  disabled={isTyping}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-300 focus:border-transparent outline-none transition-all disabled:opacity-50"
+                />
+                <button
+                  onClick={handleChatSubmit}
+                  disabled={isTyping || !chatMessage.trim()}
+                  className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800 hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  Send
+                </button>
               </div>
-            )}
+            </div>
           </div>
         ) : (
           <button
@@ -1333,6 +1564,443 @@ export default function Page() {
           </button>
         )}
       </div>
+    </div>
+  )
+}
+
+// World-Class Custom Design Tool Component
+function CustomDesignTool() {
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [selectedSize, setSelectedSize] = useState<"small" | "medium" | "large">("medium")
+  const [selectedColor, setSelectedColor] = useState("#3b82f6")
+  const [uploadedLogo, setUploadedLogo] = useState<string | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const [quantity, setQuantity] = useState(100)
+  const [startingPoint, setStartingPoint] = useState<"scratch" | "favorite" | "industry" | null>(null)
+
+  const sizes = [
+    { id: "small", name: "Small", dimensions: "1.5\"", devices: "Phones, Watches", price: 3.5 },
+    { id: "medium", name: "Medium", dimensions: "2.5\"", devices: "Tablets, Laptops", price: 5.5 },
+    { id: "large", name: "Large", dimensions: "3.5\"", devices: "Monitors, TVs", price: 7.5 },
+  ]
+
+  // Customer Favorites - Real designs that converted
+  const customerFavorites = [
+    {
+      id: "bold-minimal",
+      name: "Bold Minimal",
+      color: "#000000",
+      pattern: null,
+      description: "95% of Fortune 500s choose this",
+      badge: "Most Popular",
+    },
+    {
+      id: "tech-gradient",
+      name: "Tech Blue",
+      color: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+      pattern: null,
+      description: "Perfect for SaaS & tech companies",
+      badge: "Tech Favorite",
+    },
+    {
+      id: "vibrant-coral",
+      name: "Vibrant Coral",
+      color: "linear-gradient(135deg, #ff6b9d 0%, #ffa06b 100%)",
+      pattern: null,
+      description: "Great for creative agencies",
+      badge: "Creative",
+    },
+    {
+      id: "professional-navy",
+      name: "Navy Pro",
+      color: "#1e3a8a",
+      pattern: null,
+      description: "Finance & consulting love this",
+      badge: "Professional",
+    },
+  ]
+
+  // Industry-Specific Templates
+  const industryTemplates = [
+    {
+      id: "tech-startup",
+      name: "Tech Startup",
+      color: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      icon: "💻",
+      orders: "2,400+ orders",
+    },
+    {
+      id: "healthcare",
+      name: "Healthcare",
+      color: "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)",
+      icon: "🏥",
+      orders: "1,800+ orders",
+    },
+    {
+      id: "university",
+      name: "University",
+      color: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
+      icon: "🎓",
+      orders: "3,200+ orders",
+    },
+    {
+      id: "finance",
+      name: "Finance",
+      color: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+      icon: "💼",
+      orders: "1,500+ orders",
+    },
+    {
+      id: "real-estate",
+      name: "Real Estate",
+      color: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      icon: "🏠",
+      orders: "900+ orders",
+    },
+    {
+      id: "fitness",
+      name: "Fitness",
+      color: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+      icon: "💪",
+      orders: "750+ orders",
+    },
+  ]
+
+  const brandColors = [
+    { color: "#000000", name: "Classic Black" },
+    { color: "#3b82f6", name: "Trust Blue" },
+    { color: "#ef4444", name: "Energy Red" },
+    { color: "#10b981", name: "Growth Green" },
+    { color: "#f59e0b", name: "Vibrant Orange" },
+    { color: "#8b5cf6", name: "Creative Purple" },
+    { color: "#ec4899", name: "Bold Pink" },
+    { color: "#06b6d4", name: "Fresh Cyan" },
+  ]
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setUploadedLogo(event.target?.result as string)
+        setSelectedTemplate(null)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const calculatePrice = () => {
+    const basePrice = sizes.find((s) => s.id === selectedSize)?.price || 5.5
+    let discount = 1
+    if (quantity >= 500) discount = 0.7
+    else if (quantity >= 200) discount = 0.8
+    else if (quantity >= 100) discount = 0.9
+    return (basePrice * quantity * discount).toFixed(0)
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Social Proof Header */}
+      <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600">
+        <div className="flex items-center gap-2">
+          <Award className="h-5 w-5 text-orange-500" />
+          <span><strong>300,000+</strong> units sold</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-orange-500" />
+          <span><strong>$2M+</strong> crowdfunding</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThumbsUp className="h-5 w-5 text-orange-500" />
+          <span><strong>4.9/5</strong> rating</span>
+        </div>
+      </div>
+
+      {/* Step Indicator */}
+      <div className="flex justify-center items-center gap-4">
+        {[1, 2, 3].map((s) => (
+          <div key={s} className="flex items-center gap-4">
+            <div
+              className={`h-10 w-10 rounded-full flex items-center justify-center font-medium transition-all ${
+                step >= s ? "bg-black text-white" : "bg-gray-200 text-gray-400"
+              }`}
+            >
+              {s}
+            </div>
+            {s < 3 && <div className={`h-0.5 w-12 ${step > s ? "bg-black" : "bg-gray-200"}`} />}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+        {/* Left: Controls */}
+        <AnimatedSection>
+        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
+          <h3 className="text-xl font-medium mb-6">Customize Your Design</h3>
+
+          {/* Size Selector */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium mb-3">Choose Size</label>
+            <div className="grid grid-cols-3 gap-3">
+              {sizes.map((size) => (
+                <button
+                  key={size.id}
+                  onClick={() => setSelectedSize(size.id as any)}
+                  className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                    selectedSize === size.id
+                      ? "border-black bg-black text-white"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="text-sm font-medium">{size.name}</div>
+                  <div className="text-xs opacity-70 mt-1">{size.dimensions}</div>
+                  <div className="text-xs opacity-50 mt-1">{size.devices}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="mb-6">
+            <div className="flex gap-2 border-b border-gray-200">
+              {[
+                { id: "upload", label: "Upload Logo", icon: Upload },
+                { id: "templates", label: "Templates", icon: Sparkles },
+                { id: "patterns", label: "Patterns", icon: Target },
+                { id: "colors", label: "Colors", icon: Eye },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all ${
+                    activeTab === tab.id
+                      ? "border-b-2 border-black text-black"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="min-h-[300px]">
+            {activeTab === "upload" && (
+              <div>
+                <label className="block text-sm font-medium mb-3">Upload Your Logo</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label htmlFor="logo-upload" className="cursor-pointer">
+                    <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-sm text-gray-600 mb-2">Click to upload or drag and drop</p>
+                    <p className="text-xs text-gray-400">PNG, JPG, SVG up to 10MB</p>
+                  </label>
+                </div>
+                {uploadedLogo && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+                    <span className="text-sm text-green-800 flex items-center gap-2">
+                      <Award className="h-4 w-4" />
+                      Logo uploaded successfully
+                    </span>
+                    <button
+                      onClick={() => setUploadedLogo(null)}
+                      className="text-red-500 hover:text-red-700 text-xs"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "templates" && (
+              <div>
+                <label className="block text-sm font-medium mb-3">Choose a Template</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => {
+                        setSelectedTemplate(template.id)
+                        setUploadedLogo(null)
+                        setSelectedPattern(null)
+                      }}
+                      className={`aspect-square rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
+                        selectedTemplate === template.id ? "border-black ring-2 ring-black" : "border-gray-200"
+                      }`}
+                      style={{ background: template.preview }}
+                    >
+                      <div className="h-full flex items-center justify-center bg-black/20 text-white text-sm font-medium">
+                        {template.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "patterns" && (
+              <div>
+                <label className="block text-sm font-medium mb-3">Choose a Pattern</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {patterns.map((pattern) => (
+                    <button
+                      key={pattern.id}
+                      onClick={() => {
+                        setSelectedPattern(pattern.id)
+                        setUploadedLogo(null)
+                        setSelectedTemplate(null)
+                      }}
+                      className={`aspect-square rounded-xl border-2 transition-all hover:scale-105 flex items-center justify-center ${
+                        selectedPattern === pattern.id ? "border-black ring-2 ring-black" : "border-gray-200"
+                      }`}
+                      style={{ backgroundColor: selectedColor + "20" }}
+                    >
+                      <svg width="60" height="60" viewBox="0 0 20 20" className="opacity-50">
+                        <pattern id={`pattern-${pattern.id}`} width="20" height="20" patternUnits="userSpaceOnUse">
+                          <path d={pattern.svg} stroke={selectedColor} strokeWidth="1" fill="none" />
+                        </pattern>
+                        <rect width="20" height="20" fill={`url(#pattern-${pattern.id})`} />
+                      </svg>
+                      <div className="absolute bottom-2 text-xs font-medium" style={{ color: selectedColor }}>
+                        {pattern.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "colors" && (
+              <div>
+                <label className="block text-sm font-medium mb-3">Pick Your Brand Color</label>
+                <div className="mb-6">
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={selectedColor}
+                      onChange={(e) => setSelectedColor(e.target.value)}
+                      className="h-16 w-16 rounded-xl cursor-pointer border-2 border-gray-200"
+                    />
+                    <div>
+                      <div className="text-sm font-medium">Selected Color</div>
+                      <div className="text-xs text-gray-500 font-mono">{selectedColor}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <label className="block text-sm font-medium mb-3">Popular Brand Colors</label>
+                <div className="grid grid-cols-5 gap-3">
+                  {colorPresets.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`aspect-square rounded-xl border-2 transition-all hover:scale-110 ${
+                        selectedColor === color ? "border-black ring-2 ring-black" : "border-gray-200"
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Button className="w-full mt-8 bg-black text-white py-6 rounded-xl hover:bg-gray-800 hover:scale-105 transition-all duration-300">
+            Get Instant Quote
+          </Button>
+        </div>
+      </AnimatedSection>
+
+      {/* Right: Live Preview */}
+      <AnimatedSection delay={200}>
+        <div className="sticky top-24">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
+            <h3 className="text-xl font-medium mb-6">Live Preview</h3>
+
+            {/* Main Preview */}
+            <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-12 mb-6 flex items-center justify-center min-h-[400px]">
+              <div
+                className="relative rounded-2xl shadow-2xl transition-all duration-500"
+                style={{
+                  width: `${180 * getSizeMultiplier()}px`,
+                  height: `${180 * getSizeMultiplier()}px`,
+                  backgroundColor: selectedColor,
+                  background: selectedTemplate
+                    ? templates.find((t) => t.id === selectedTemplate)?.preview
+                    : selectedColor,
+                }}
+              >
+                {uploadedLogo && (
+                  <div className="absolute inset-0 flex items-center justify-center p-8">
+                    <img src={uploadedLogo} alt="Your logo" className="max-w-full max-h-full object-contain" />
+                  </div>
+                )}
+                {selectedPattern && (
+                  <div className="absolute inset-0 opacity-30">
+                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <pattern
+                          id={`preview-pattern-${selectedPattern}`}
+                          width="40"
+                          height="40"
+                          patternUnits="userSpaceOnUse"
+                        >
+                          <path
+                            d={patterns.find((p) => p.id === selectedPattern)?.svg}
+                            stroke="white"
+                            strokeWidth="2"
+                            fill="none"
+                          />
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill={`url(#preview-pattern-${selectedPattern})`} />
+                    </svg>
+                  </div>
+                )}
+                {!uploadedLogo && !selectedTemplate && !selectedPattern && (
+                  <div className="absolute inset-0 flex items-center justify-center text-white text-2xl font-light">
+                    CBSC
+                  </div>
+                )}
+                <div className="absolute -bottom-2 -right-2 bg-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                  {sizes.find((s) => s.id === selectedSize)?.dimensions}
+                </div>
+              </div>
+            </div>
+
+            {/* Demo Companies */}
+            <div>
+              <label className="block text-sm font-medium mb-3">Example Designs</label>
+              <div className="grid grid-cols-2 gap-3">
+                {demoCompanies.map((company) => (
+                  <button
+                    key={company.name}
+                    onClick={() => setSelectedColor(company.color)}
+                    className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:scale-105 transition-all"
+                  >
+                    <div
+                      className="aspect-square rounded-lg mb-2 flex items-center justify-center text-white font-bold text-xl"
+                      style={{ backgroundColor: company.color }}
+                    >
+                      {company.logo}
+                    </div>
+                    <div className="text-xs text-gray-600">{company.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
     </div>
   )
 }
