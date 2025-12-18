@@ -1074,6 +1074,60 @@ export default function Page() {
         </section>
       </main>
 
+      {/* SUBSCRIPTION SECTION */}
+      <section className="relative py-24 px-4 sm:px-6 overflow-hidden bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-600">
+        {/* Animated background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }} />
+        </div>
+
+        <div className="relative max-w-4xl mx-auto text-center">
+          <AnimatedSection>
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-medium mb-6">
+              <Sparkles className="h-4 w-4" />
+              Exclusive Updates
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-light tracking-tight text-white mb-4">
+              STAY IN THE LOOP
+            </h2>
+            <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+              Get insider tips on promotional products, exclusive deals, and be the first to know about new features.
+            </p>
+
+            <div className="max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3 bg-white/95 backdrop-blur-sm p-2 rounded-2xl shadow-2xl">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 px-6 py-4 rounded-xl border-none focus:ring-2 focus:ring-cyan-400 outline-none text-gray-900 placeholder:text-gray-400"
+                />
+                <Button className="bg-black text-white px-8 py-4 rounded-xl hover:bg-gray-800 hover:scale-105 transition-all duration-300 whitespace-nowrap">
+                  Subscribe
+                </Button>
+              </div>
+              <p className="mt-4 text-sm text-white/70">
+                Join 5,000+ marketing professionals. Unsubscribe anytime.
+              </p>
+            </div>
+
+            {/* Trust indicators */}
+            <div className="mt-12 flex flex-wrap justify-center gap-6 sm:gap-8 text-white/90">
+              {[
+                { icon: Mail, text: "Weekly tips" },
+                { icon: Sparkles, text: "Exclusive deals" },
+                { icon: Award, text: "Industry insights" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <item.icon className="h-4 w-4" />
+                  {item.text}
+                </div>
+              ))}
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer className="bg-black text-white py-16 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">

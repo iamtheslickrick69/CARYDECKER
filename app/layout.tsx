@@ -1,27 +1,34 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-geist",
+});
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  metadataBase: new URL('https://cbsc.com'),
+  title: 'CBSC - Custom Branded Screen Cleaners',
+  description: 'Premium custom branded screen cleaners. NASA-inspired technology that sticks to devices and delivers 100+ brand impressions. Founded by the original inventor.',
+  openGraph: {
+    title: 'CBSC - Custom Branded Screen Cleaners',
+    description: 'Your brand, their screens, always clean. Premium promotional products with NASA-inspired technology.',
+    images: ['/images/logoofficial.png'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CBSC - Custom Branded Screen Cleaners',
+    description: 'Your brand, their screens, always clean. Premium promotional products with NASA-inspired technology.',
+    images: ['/images/logoofficial.png'],
+  },
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
+        url: '/cbsc-favicon.svg',
         type: 'image/svg+xml',
       },
     ],
@@ -36,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${geist.className} antialiased`}>
         {children}
         <Analytics />
       </body>
