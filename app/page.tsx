@@ -1677,6 +1677,14 @@ function CustomDesignTool() {
     { color: "#06b6d4", name: "Fresh Cyan" },
   ]
 
+  // Temporary - for backwards compatibility
+  const [activeTab, setActiveTab] = useState<"upload" | "templates" | "patterns" | "colors">("upload")
+  const [selectedPattern, setSelectedPattern] = useState<string | null>(null)
+
+  const templates = customerFavorites
+  const patterns: any[] = []
+  const colorPresets = brandColors.map(c => c.color)
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -1696,6 +1704,14 @@ function CustomDesignTool() {
     else if (quantity >= 200) discount = 0.8
     else if (quantity >= 100) discount = 0.9
     return (basePrice * quantity * discount).toFixed(0)
+  }
+
+  const getSizeMultiplier = () => {
+    switch (selectedSize) {
+      case "small": return 0.7
+      case "large": return 1.3
+      default: return 1
+    }
   }
 
   return (
